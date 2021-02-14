@@ -3,4 +3,4 @@ project(MiniBot)
 set(CMAKE_CXX_STANDARD 11)
 
 
-add_executable(MiniBot Camera.cpp Camera.h)
+add_executable(MiniBot main.cpp Camera.cpp Camera.h)

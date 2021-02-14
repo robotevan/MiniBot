@@ -2,7 +2,7 @@
 #define MINIBOT_CAMERA_H
 
 #include <cstdio>
-#include <stdlib.h>
+#include <cstdlib>
 #include <linux/ioctl.h>
 #include <linux/types.h>
 #include <linux/v4l2-common.h>
@@ -24,6 +24,7 @@ class Camera {
         void capture_frame();
     private:
         int fd;
+        char *img_buffer;
 };
 
 
