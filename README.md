@@ -1,2 +1,10 @@
 # MiniBot
-Small Robot,  not sure what's gonna happen yet
+Small Robot, currently looking into parts:
+
+BOARD: Raspberry Pi Zero W
+MOTOR: na
+MOTOR DRIVER: na
+BATTERY: na
+Camera: PiCamera with zero adapter
+
+
