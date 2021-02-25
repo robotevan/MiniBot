@@ -1,2 +1,6 @@
 # MiniBot
-Small Robot,  not sure what's gonna happen yet
+Small Robot, currently looking into parts:
+
+
+
+
