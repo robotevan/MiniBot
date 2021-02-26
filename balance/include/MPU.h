@@ -17,6 +17,10 @@
 #define READ_BIT I2C_MASTER_READ
 
 
+#define ACCEL_X_OFFSET 0
+#define ACCEL_Y_OFFSET 0
+#define ACCEL_Z_OFFSET 0
+
 void _init_i2c_master();    
 void _write_byte(uint8_t addr, uint8_t reg, uint8_t data);
 uint8_t _read_byte(uint8_t addr, uint8_t reg);
