@@ -2,10 +2,10 @@
 
 // offsets for the accel/gyro
 float ax_offset, ay_offset, az_offset = 0;
-float gx_offset, gy_offset, gz_offset = 0;
+float gr_offset, gp_offset, gy_offset = 0;
 mpu_accel_range_t accel_range = MPU_2G_ACCEL_MODE;
 mpu_gyro_range_t gyro_range = MPU_250_GYRO_MODE;
-float mpu_accel_z_offset = ACCEL_2G_Z_OFF;
+float mpu_sensitivity = ACCEL_2G_SENS;
 
 
 
@@ -51,91 +51,118 @@ uint8_t read_byte_(uint8_t addr, uint8_t reg){
     return data;
 }
 
-void set_mpu_sleep_(uint8_t state){
+void set_mpu_sleep(uint8_t state){
     if (state <= 1){
         uint8_t data = (state << 6);
         write_byte_(MPU_DEFAULT_ADDR, MPU_PWR_MGMT_1, data);
     }    
 }
 
-void set_mpu_accel_scale_(mpu_accel_range_t scale){
+void set_mpu_accel_scale(mpu_accel_range_t scale){
     write_byte_(MPU_DEFAULT_ADDR, MPU_ACCEL_CONFIG, scale);
     accel_range = scale;
     if(scale == MPU_2G_ACCEL_MODE){
-        mpu_accel_z_offset = ACCEL_2G_Z_OFF;
+        mpu_sensitivity = ACCEL_2G_SENS;
     } else if(scale == MPU_4G_ACCEL_MODE){
-        mpu_accel_z_offset = ACCEL_4G_Z_OFF;
+        mpu_sensitivity = ACCEL_4G_SENS;
     } else if(scale == MPU_8G_ACCEL_MODE){
-        mpu_accel_z_offset = ACCEL_8G_Z_OFF;
+        mpu_sensitivity = ACCEL_8G_SENS;
     } else if(scale == MPU_4G_ACCEL_MODE){
-        mpu_accel_z_offset = ACCEL_16G_Z_OFF;
+        mpu_sensitivity = ACCEL_16G_SENS;
     }
 }
 
-void set_mpu_gyro_scale_(mpu_gyro_range_t scale){
+void set_mpu_gyro_scale(mpu_gyro_range_t scale){
     write_byte_(MPU_DEFAULT_ADDR, MPU_GYRO_CONFIG, scale);
     gyro_range = scale;
 }
 
 void init_mpu_6050(){
-
     // initialize the i2c driver
     init_i2c_master_();
-    set_mpu_sleep_(0);  
+    set_mpu_sleep(0);  
     write_byte_(MPU_DEFAULT_ADDR, MPU_CONFIG, (uint8_t)3); // 44hz low pass filter
-    set_mpu_accel_scale_(MPU_2G_ACCEL_MODE);
-    set_mpu_gyro_scale_(MPU_250_GYRO_MODE);
+    set_mpu_accel_scale(MPU_4G_ACCEL_MODE);
+    set_mpu_gyro_scale(MPU_500_GYRO_MODE);
+    calibrate_offsets_();
 }
 
-void calibrate_offsets(){
-    ESP_LOGE("Calibration" ,"Starting calibration, leave on flat surface");
-    float ax_off, ay_off, az_off = 0;
-    float gx_off, gy_off, gz_off = 0;
-    ax_offset = 0, ay_offset = 0, az_offset = 0, gx_offset = 0, gy_offset = 0, gz_offset = 0;
+void calibrate_offsets_(){
+    ESP_LOGI("Calibration" ,"Starting calibration, leave on flat surface");
+    mpu_accel_t accel;
+    mpu_gyro_t gyro;
+    ax_offset = 0, ay_offset = 0, az_offset = 0, gr_offset = 0, gp_offset = 0, gy_offset = 0;
     // sum up offsets
     for (int i = 0; i < CALIBRATION_SAMPLES;i++){ 
-        read_gyro_raw(&gx_off, &gy_off, &gz_off);
-        gx_offset += gx_off;
-        gy_offset += gy_off;
-        gz_offset += gz_off;
+        gyro = read_gyro_raw();
+        gr_offset += gyro.roll;
+        gp_offset += gyro.pitch;
+        gy_offset += gyro.yaw;
 
-        read_accel_raw(&ax_off, &ay_off, &az_off);
-        ax_offset += ax_off;
-        ay_offset += ay_off;
-        ax_offset += az_off;
+        accel = read_accel_raw();
+        ax_offset += accel.x;
+        ay_offset += accel.y;
+        ax_offset += accel.z;
     }
     // calculate the average offset
-    gx_offset /= CALIBRATION_SAMPLES;
+    gr_offset /= CALIBRATION_SAMPLES;
+    gp_offset /= CALIBRATION_SAMPLES;
     gy_offset /= CALIBRATION_SAMPLES;
-    gz_offset /= CALIBRATION_SAMPLES;
 
     ax_offset /= CALIBRATION_SAMPLES;
     ay_offset /= CALIBRATION_SAMPLES;
     az_offset /= CALIBRATION_SAMPLES;
-    az_offset -= mpu_accel_z_offset; // subtract effects of gravity from z axis
-    ESP_LOGE("Calibration" ,"Done Dalibration");
+    az_offset -= mpu_sensitivity; // subtract effects of gravity from z axis
+    ESP_LOGI("Calibration" ,"Done Dalibration");
 }
 
 
-
-void read_gyro_raw(float *pitch, float *roll, float *yaw){
+mpu_gyro_t read_gyro_raw(){
     // Each value is 16 bits (two 8 bit registers)
-    uint16_t pitch_val = read_byte_(MPU_DEFAULT_ADDR, GYRO_XOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, ACCEL_XOUT_L);
-    uint16_t roll_val = read_byte_(MPU_DEFAULT_ADDR, ACCEL_YOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, ACCEL_YOUT_L);
+    uint16_t roll_val = read_byte_(MPU_DEFAULT_ADDR, GYRO_XOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, ACCEL_XOUT_L);
+    uint16_t pitch_val = read_byte_(MPU_DEFAULT_ADDR, ACCEL_YOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, ACCEL_YOUT_L);
     uint16_t yaw_val = read_byte_(MPU_DEFAULT_ADDR, ACCEL_ZOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, ACCEL_ZOUT_L);
-    *pitch = (float)pitch_val;
-    *roll = (float)roll_val;
-    *yaw = (float)yaw_val;
+    mpu_gyro_t gyro_out = {
+        .roll = (float)roll_val,
+        .pitch = (float)pitch_val,
+        .yaw = (float)yaw_val
+    };
+    return gyro_out;
 }
 
-void read_accel_raw(float *x, float *y, float *z){
+mpu_gyro_t read_gyro(){
+    mpu_gyro_t gyro_raw = read_gyro_raw();
+    // apply offsets
+    gyro_raw.roll = round((gyro_raw.roll - gr_offset) * 1000.0 / mpu_sensitivity) / 1000.0;
+    gyro_raw.pitch = round((gyro_raw.pitch - gp_offset) * 1000.0 / mpu_sensitivity) / 1000.0;
+    gyro_raw.yaw = round((gyro_raw.yaw - gy_offset) * 1000.0 / mpu_sensitivity) / 1000.0;
+    return gyro_raw;
+}
+
+mpu_accel_t read_accel_raw(){
     // Each value is 16 bits (two 8 bit registers)
     uint16_t x_val = read_byte_(MPU_DEFAULT_ADDR, GYRO_XOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, GYRO_XOUT_L);
-    uint16_t y_val = read_byte_(MPU_DEFAULT_ADDR, GYRO_YOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, GYRO_YOUT_L  );
+    uint16_t y_val = read_byte_(MPU_DEFAULT_ADDR, GYRO_YOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, GYRO_YOUT_L);
     uint16_t z_val = read_byte_(MPU_DEFAULT_ADDR, GYRO_ZOUT_H) << 8 | read_byte_(MPU_DEFAULT_ADDR, GYRO_ZOUT_L);
-    *x = (float)x_val;
-    *y = (float)y_val;
-    *z = (float)z_val;
+    mpu_accel_t accel_out = {
+        .x = x_val,
+        .y = y_val,
+        .z = z_val
+    };
+    return accel_out;
+}
+
+mpu_accel_t read_accel(){
+    mpu_accel_t accel_raw = read_accel_raw();
+    accel_raw.x = round((accel_raw.x - ax_offset) * 1000.0 / mpu_sensitivity) / 1000.0;
+	accel_raw.y = round((accel_raw.y - ay_offset) * 1000.0 / mpu_sensitivity) / 1000.0;
+	accel_raw.z = round((accel_raw.z - az_offset) * 1000.0 / mpu_sensitivity) / 1000.0;
+    return accel_raw;
+}
+
+float read_angle_xaxis(){
+    mpu_accel_t accel = read_accel();
+    return atan2(accel.z, accel.y) * RAD_T_DEG - 90.0;
 }
 
 void read_temperature(float *temperature){
