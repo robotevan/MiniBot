@@ -16,24 +16,25 @@
 #define WRITE_BIT I2C_MASTER_WRITE 
 #define READ_BIT I2C_MASTER_READ
 
+#define CALIBRATION_SAMPLES 10000
+#define ACCEL_2G_Z_OFF 16384.0
+#define ACCEL_4G_Z_OFF 8192.0
+#define ACCEL_8G_Z_OFF 4096.0
+#define ACCEL_16G_Z_OFF 2048.0
 
-void _init_i2c_master();    
-void _write_byte(uint8_t addr, uint8_t reg, uint8_t data);
-uint8_t _read_byte(uint8_t addr, uint8_t reg);
-void _set_mpu_sleep(uint8_t state);
-void _set_mpu_accel_scale(mpu_accel_range_t scale);
-void _set_mpu_gyro_scale(mpu_gyro_range_t scale);
+void init_i2c_master_();    
+void write_byte_(uint8_t addr, uint8_t reg, uint8_t data);
+uint8_t read_byte_(uint8_t addr, uint8_t reg);
+void set_mpu_sleep_(uint8_t state);
+void set_mpu_accel_scale_(mpu_accel_range_t scale);
+void set_mpu_gyro_scale_(mpu_gyro_range_t scale);
 
 void init_mpu_6050();
-
+void calibrate_offsets();
 void read_gyro_raw(float *pitch, float *roll, float *yaw);
 void read_gyro(float *pitch, float *roll, float *yaw);
-void calibrate_gyro(float *pitch_offset, float *roll_offset, float *raw_offset);
-
 void read_accel_raw(float *x, float *y, float *z);
 void read_accel(float *x, float *y, float *z);
-void calibrate_accel(float *x_off, float *y_off, float *z_off);
-
 void read_temperature(float *temperature);
 
 #endif

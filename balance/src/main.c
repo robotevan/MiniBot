@@ -7,9 +7,9 @@ void app_main() {
     float temp;
     init_mpu_6050();
     init_mcpwm(4,5,18,19);
+    calibrate_offsets();
     while (1){
         read_temperature(&temp);
-        printf("temperature is %f\n", temp);
     }
 }
 
