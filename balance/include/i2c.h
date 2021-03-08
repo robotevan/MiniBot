@@ -2,6 +2,7 @@
 #define I2C_H
 #include <driver/i2c.h>
 #include <stdint.h>
+#include <esp_log.h>
 
 #define I2C_MASTER_NUM I2C_NUM_0
 #define I2C_MASTER_FREQ_HZ 400000  
@@ -20,6 +21,11 @@
 void i2c_init(uint8_t sda_pin, uint8_t scl_pin);
 
 /*
+    Destroy i2c connection
+*/
+void i2c_destroy();
+
+/*
     write a single byte to an internal register of the slav address
     uint8_t slave_addr, address of the device
     uint8_t reg_addr, address of the internal register of a slave device
@@ -32,9 +38,13 @@ esp_err_t i2c_write_slave(uint8_t slave_addr, uint8_t reg_addr, uint8_t data);
     uint8_t slave_addr, address of the device
     uint8_t reg_addr, address of the internal register of a slave device
     uint8_t *read_buf, buffer of bytes to store data
-    uint32_t read_len, number of bytes to read to read_buf
+    uint32_t read_len, number of bytes to read to read_b
 */
 esp_err_t i2c_read_slave(uint8_t slave_addr, uint8_t reg_addr, uint8_t *read_buf, uint32_t read_len);
 
+
+esp_err_t i2c_write_bit(uint8_t slave_addr, uint8_t reg_addr, uint8_t bit, uint8_t bit_val);
+
+int print_bits(uint8_t slave_addr, uint8_t reg_addr);
 
 #endif

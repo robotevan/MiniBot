@@ -16,6 +16,10 @@ void i2c_init(uint8_t sda_pin, uint8_t scl_pin)
                         I2C_MASTER_TX_BUF_DISABLE, 0);
 }
 
+void i2c_destroy()
+{
+    i2c_driver_delete(I2C_MASTER_NUM);
+}
 
 esp_err_t i2c_write_slave(uint8_t slave_addr, uint8_t reg_addr, uint8_t data)
 {
@@ -55,4 +59,41 @@ esp_err_t i2c_read_slave(uint8_t slave_addr, uint8_t reg_addr, uint8_t *read_buf
     ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
     return ret;
+}
+
+
+esp_err_t i2c_write_bit(uint8_t slave_addr, uint8_t reg_addr, uint8_t bit, uint8_t bit_val)
+{
+    uint8_t register_contents;
+    esp_err_t ret;
+    ret = i2c_read_slave(slave_addr, reg_addr, &register_contents, 1); // read contents of single register
+    if (ret == ESP_FAIL){
+        return -1;
+    }
+    if (bit_val){
+        register_contents |= (uint8_t)(1<<bit); // set bit
+    }else{
+        register_contents &= ~(uint8_t)(1<<bit); // clear bit
+    }
+    ret = i2c_write_slave(slave_addr, reg_addr, register_contents);
+    if (ret == ESP_FAIL){
+        return -1;
+    }
+    return 1;
+}
+
+
+int print_bits(uint8_t slave_addr, uint8_t reg_addr)
+{
+    uint8_t register_contents;
+    esp_err_t ret;
+    ret = i2c_read_slave(slave_addr, reg_addr, &register_contents, 1); // read contents of single register
+    if (ret == ESP_FAIL) {
+        return -1;
+    }
+    for (int i = 0; i < 8; i++){
+        printf("%d", register_contents & (1 << i));
+    }
+    printf("\n");
+    return -1;
 }
