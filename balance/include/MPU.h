@@ -30,6 +30,7 @@
 
 
 #define MPU_SLEEP_BIT 6
+#define MPU_RESET_BIT 7
 
 typedef enum {
     INTERNAL_8MHZ,
@@ -70,14 +71,31 @@ typedef enum {
 #define GYRO_SENS_1000 32.8
 #define GYRO_SENS_2000 16.4
 
+// low pass filter types, numbers after ACCEL and GYRO are respective bandwitdths in Hz
+typedef enum{
+    ACCEL_260_GYRO_256,
+    ACCEL_184_GYRO_188,
+    ACCEL_94_GYRO_98,
+    ACCEL_44_GYRO_42,
+    ACCEL_21_GYRO_20,
+    ACCEL_10_GYRO_10,
+    ACCEL_5_GYRO_5
+}lp_filter_t;
+
+
+
 #define CALIBRATION_SAMPLES 10000
  
 void mpu_init(uint8_t sda_pin, uint8_t scl_pin);
+int mpu_reset();
 int mpu_set_clock(clock_source_t clock_source);
 int mpu_set_rate(uint8_t rate);
 int mpu_set_gyro_range(gyro_range_t gyro_range);
 int mpu_set_accel_range(accel_range_t accel_range);
 int mpu_set_sleep(int enabled);
-
+int mpu_set_lp_filter(lp_filter_t lp_filter);
+void mpu_read_gyro_raw(uint16_t *x_axis, uint16_t *y_axis, uint16_t *z_axis);
+void mpu_read_accel_raw(uint16_t *x_axis, uint16_t *y_axis, uint16_t *z_axis);
+int mpu_calibrate();
 
 #endif
