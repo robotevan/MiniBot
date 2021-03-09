@@ -9,6 +9,9 @@ void mpu_init(uint8_t sda_pin, uint8_t scl_pin)
     mpu_set_clock(PLL_X_GYRO);
     mpu_set_gyro_range(GYRO_RANGE_250);
     mpu_set_accel_range(ACCEL_RANGE_2G);
+    print_bits(MPU_SLAVE_ADDR, MPU_PWR_MGMT_1);
+    print_bits(MPU_SLAVE_ADDR, MPU_GYRO_CONFIG);
+    print_bits(MPU_SLAVE_ADDR, MPU_ACCEL_CONFIG);
 }
 
 int mpu_set_clock(clock_source_t clock_source)
@@ -63,5 +66,6 @@ int mpu_set_accel_range(accel_range_t accel_range)
 }
 
 int mpu_set_sleep(int enabled){
-    i2c_write_bit(MPU_SLAVE_ADDR, MPU_PWR_MGMT_1, MPU_SLEEP_BIT, enabled);
+    int ret = i2c_write_bit(MPU_SLAVE_ADDR, MPU_PWR_MGMT_1, MPU_SLEEP_BIT, enabled);
+    return ret;
 }

@@ -85,14 +85,14 @@ esp_err_t i2c_write_bit(uint8_t slave_addr, uint8_t reg_addr, uint8_t bit, uint8
 
 int print_bits(uint8_t slave_addr, uint8_t reg_addr)
 {
-    uint8_t register_contents;
+    uint8_t register_contents = 0xFF;
     esp_err_t ret;
     ret = i2c_read_slave(slave_addr, reg_addr, &register_contents, 1); // read contents of single register
     if (ret == ESP_FAIL) {
         return -1;
     }
-    for (int i = 0; i < 8; i++){
-        printf("%d", register_contents & (1 << i));
+    for (int i = 7; i >= 0; i--){
+        (register_contents & (1<<i)) ? putchar('1') : putchar('0');
     }
     printf("\n");
     return -1;

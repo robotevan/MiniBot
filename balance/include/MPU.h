@@ -78,4 +78,6 @@ int mpu_set_rate(uint8_t rate);
 int mpu_set_gyro_range(gyro_range_t gyro_range);
 int mpu_set_accel_range(accel_range_t accel_range);
 int mpu_set_sleep(int enabled);
+
+
 #endif

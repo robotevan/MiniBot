@@ -5,6 +5,8 @@
 
 void app_main() {
     init_mcpwm(4,5,18,19);
+    mpu_init(21, 22);
+    
     while (1){
         vTaskDelay(100);
         //ESP_LOGI("Output", "x: %f, y:%f, z:%f \n", accel.x, accel.y, accel.z);
