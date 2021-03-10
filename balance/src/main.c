@@ -10,7 +10,7 @@ void app_main() {
     //mpu_calibrate();
     while (1){
         vTaskDelay(10);
-        mpu_read_accel_raw(&x, &y, &z);
+        mpu_read_gyro_raw(&x, &y, &z);
         printf("X:%f  Y:%f Z:%f\n", x, y, z);
         //ESP_LOGI("Output", "x: %f, y:%f, z:%f \n", accel.x, accel.y, accel.z);
         
