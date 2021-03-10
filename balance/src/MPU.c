@@ -3,8 +3,8 @@
 float accel_sensivity = 0;
 float gyro_sensivity = 0;
 
-double x_accel_offset, y_accel_offset, z_accel_offset = 0;
-double x_gyro_offset, y_gyro_offset, z_gyro_offset = 0;
+double x_accel_offset = 0, y_accel_offset = 0, z_accel_offset = 0;
+double x_gyro_offset = 0, y_gyro_offset = 0, z_gyro_offset = 0;
 
 void mpu_init(uint8_t sda_pin, uint8_t scl_pin)
 {
@@ -124,16 +124,43 @@ void mpu_read_accel_raw(float *x_axis, float *y_axis, float *z_axis)
 
 int mpu_calibrate()
 {
-    float x,y,z;
-    double accel_x_, accel_y_, accel_z_ = 0;
-    double gyro_x_, gyro_y_, gyro_z_ = 0;
+    float x,y,z = 0;
+    double accel_x_off = 0, accel_y_off = 0, accel_z_off = 0;
+    double gyro_x_off = 0, gyro_y_off = 0, gyro_z_off = 0;
     for (int i = 0; i < CALIBRATION_SAMPLES; i++){
-        mpu_read_accel_raw(&x, &y, &z);
-        accel_z_ += z;
+        mpu_read_accel_raw(&x, &y, &z); // sum up accel vals
+        accel_x_off += x;
+        accel_y_off += y;
+        accel_z_off += z;
+        mpu_read_gyro_raw(&x, &y, &z); // sum up gyro vals
+        gyro_x_off += x;
+        gyro_y_off += y;
+        gyro_z_off += z;
     }
-    printf("Accel cal done\n");
-    accel_z_ /= CALIBRATION_SAMPLES;
-    printf("accel_z_offset: %f\n", 1.0-accel_z_);
-
+    // get average for each and store in offsets
+    x_accel_offset = accel_x_off / CALIBRATION_SAMPLES;
+    y_accel_offset = accel_y_off / CALIBRATION_SAMPLES;
+    z_accel_offset = ACCEL_Z_GRAV_G - accel_z_off / CALIBRATION_SAMPLES;
+    x_gyro_offset = gyro_x_off / CALIBRATION_SAMPLES;
+    y_gyro_offset = gyro_y_off / CALIBRATION_SAMPLES;
+    z_gyro_offset = gyro_y_off / CALIBRATION_SAMPLES;
     return 1;
+}
+
+void mpu_read_gyro(float *x_axis, float *y_axis, float *z_axis)
+{
+    float x, y, z;
+    mpu_read_gyro_raw(&x, &y, &z);
+    *x_axis -= x - x_gyro_offset;
+    *y_axis -= y - y_gyro_offset;
+    *z_axis -= z - z_gyro_offset;
+}
+
+void mpu_read_accel(float *x_axis, float *y_axis, float *z_axis)
+{
+    float x, y, z;
+    mpu_read_accel_raw(&x, &y, &z);
+    *x_axis = x - x_accel_offset;
+    *y_axis = y - y_accel_offset;
+    *z_axis = z + z_accel_offset;
 }

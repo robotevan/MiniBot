@@ -32,7 +32,6 @@
 #define MPU_SLEEP_BIT 6
 #define MPU_RESET_BIT 7
 
-#define DEVICE_IDENTITY         0x34
 
 typedef enum {
     INTERNAL_8MHZ,
@@ -86,8 +85,9 @@ typedef enum{
 
 
 
-#define CALIBRATION_SAMPLES 5000
- 
+#define CALIBRATION_SAMPLES 1000
+#define ACCEL_Z_GRAV_G 1 // 1g on z axis for calibration
+
 void mpu_init(uint8_t sda_pin, uint8_t scl_pin);
 int mpu_reset();
 int mpu_set_clock(clock_source_t clock_source);
@@ -96,8 +96,11 @@ int mpu_set_gyro_range(gyro_range_t gyro_range);
 int mpu_set_accel_range(accel_range_t accel_range);
 int mpu_set_sleep(int enabled);
 int mpu_set_lp_filter(lp_filter_t lp_filter);
-void mpu_read_gyro_raw(float *x_axis, float *y_axis, float *z_axis);
-void mpu_read_accel_raw(float *x_axis, float *y_axis, float *z_axis);
+void mpu_read_gyro_raw(float *x_axis, float *y_axis, float *z_axis); // RAW
+void mpu_read_accel_raw(float *x_axis, float *y_axis, float *z_axis); // RAW
 int mpu_calibrate();
+void mpu_read_gyro(float *x_axis, float *y_axis, float *z_axis); // CORRECTED
+void mpu_read_accel(float *x_axis, float *y_axis, float *z_axis); // CORRECTED
+
 
 #endif
