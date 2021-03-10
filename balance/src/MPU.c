@@ -13,11 +13,7 @@ void mpu_init(uint8_t sda_pin, uint8_t scl_pin)
     mpu_set_clock(PLL_X_GYRO);
     mpu_set_gyro_range(GYRO_RANGE_250);
     mpu_set_accel_range(ACCEL_RANGE_2G);
-    mpu_set_lp_filter(ACCEL_184_GYRO_188);
     mpu_set_sleep(0);
-    print_bits(MPU_SLAVE_ADDR, MPU_PWR_MGMT_1);
-    print_bits(MPU_SLAVE_ADDR, MPU_GYRO_CONFIG);
-    print_bits(MPU_SLAVE_ADDR, MPU_ACCEL_CONFIG);
 }
 
 int mpu_reset()
@@ -99,7 +95,7 @@ int mpu_set_lp_filter(lp_filter_t lp_filter)
     return 1;
 }
 
-void mpu_read_gyro_raw(uint16_t *x_axis, uint16_t *y_axis, uint16_t *z_axis)
+void mpu_read_gyro_raw(float *x_axis, float *y_axis, float *z_axis)
 {
     uint8_t x[2];
     uint8_t y[2]; 
@@ -107,23 +103,41 @@ void mpu_read_gyro_raw(uint16_t *x_axis, uint16_t *y_axis, uint16_t *z_axis)
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_XOUT_H, x, 2);
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_YOUT_H, y, 2);
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_XOUT_H, z, 2);
-    *x_axis = (((uint16_t)x[0] << 8) | x[1]) / accel_sensivity;
-    *y_axis = (((uint16_t)y[0] << 8) | y[1]) / accel_sensivity;
-    *z_axis = (((uint16_t)z[0] << 8) | z[1]) / accel_sensivity;
+    *x_axis = (float)((x[0] << 8) | x[1]) / gyro_sensivity;
+    *y_axis = (float)((y[0] << 8) | y[1]) / gyro_sensivity;
+    *z_axis = (float)((z[0] << 8) | z[1]) / gyro_sensivity;
 }
 
-void mpu_read_accel_raw(uint16_t *x_axis, uint16_t *y_axis, uint16_t *z_axis)
+void mpu_read_accel_raw(float *x_axis, float *y_axis, float *z_axis)
 {
-
+    uint8_t x[2];
+    uint8_t y[2]; 
+    uint8_t z[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_XOUT_H, x, 2);
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_YOUT_H, y, 2);
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_ZOUT_H, z, 2);
+    *x_axis = (float)((x[0] << 8) | x[1]) / accel_sensivity;
+    *y_axis = (float)((y[0] << 8) | y[1]) / accel_sensivity;
+    *z_axis = (float)((z[0] << 8) | z[1]) / accel_sensivity;
 }
 
 
 int mpu_calibrate()
 {
+    float x,y,z;
     double accel_x_, accel_y_, accel_z_ = 0;
     double gyro_x_, gyro_y_, gyro_z_ = 0;
     for (int i = 0; i < CALIBRATION_SAMPLES; i++){
-
+        mpu_read_accel_raw(&x, &y, &z);
+        accel_z_ += z;
+    }
+    printf("Accel cal done\n");
+    accel_z_ /= CALIBRATION_SAMPLES;
+    printf("accel_z_offset: %f\n", 1.0-accel_z_);
+    while(true){
+        mpu_read_accel_raw(&x, &y, &z);
+        printf("final z: %f\n",z+accel_z_);
+        vTaskDelay(10);
     }
     return 1;
 }
