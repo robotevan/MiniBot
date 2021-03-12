@@ -95,7 +95,7 @@ int mpu_set_lp_filter(lp_filter_t lp_filter)
     return 1;
 }
 
-void mpu_read_gyro_raw(float *x_axis, float *y_axis, float *z_axis)
+void mpu_read_gyro_raw(int16_t *x_axis, int16_t *y_axis, int16_t *z_axis)
 {
     uint8_t x[2];
     uint8_t y[2]; 
@@ -103,12 +103,12 @@ void mpu_read_gyro_raw(float *x_axis, float *y_axis, float *z_axis)
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_XOUT_H, x, 2);
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_YOUT_H, y, 2);
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_XOUT_H, z, 2);
-    *x_axis = (float)((int16_t)(x[0] << 8) | x[1]) / gyro_sensivity;
-    *y_axis = (float)((int16_t)(y[0] << 8) | y[1]) / gyro_sensivity;
-    *z_axis = (float)((int16_t)(z[0] << 8) | z[1]) / gyro_sensivity;
+    *x_axis = (int16_t)((int16_t)(x[0] << 8) | x[1]);
+    *y_axis = (int16_t)((int16_t)(y[0] << 8) | y[1]);
+    *z_axis = (int16_t)((int16_t)(z[0] << 8) | z[1]);
 }
 
-void mpu_read_accel_raw(float *x_axis, float *y_axis, float *z_axis)
+void mpu_read_accel_raw(int16_t *x_axis, int16_t *y_axis, int16_t *z_axis)
 {
     uint8_t x[2];
     uint8_t y[2]; 
@@ -116,18 +116,17 @@ void mpu_read_accel_raw(float *x_axis, float *y_axis, float *z_axis)
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_XOUT_H, x, 2);
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_YOUT_H, y, 2);
     i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_ZOUT_H, z, 2);
-    *x_axis = (float)((int16_t)(x[0] << 8) | x[1]) / accel_sensivity;
-    *y_axis = (float)((int16_t)(y[0] << 8) | y[1]) / accel_sensivity;
-    *z_axis = (float)((int16_t)(z[0] << 8) | z[1]) / accel_sensivity;
+    *x_axis = (int16_t)((x[0] << 8) | x[1]);
+    *y_axis = (int16_t)((y[0] << 8) | y[1]);
+    *z_axis = (int16_t)((z[0] << 8) | z[1]);
 }
-
 
 int mpu_calibrate()
 {
-    float x,y,z = 0;
-    double accel_x_off = 0, accel_y_off = 0, accel_z_off = 0;
-    double gyro_x_off = 0, gyro_y_off = 0, gyro_z_off = 0;
+    int64_t accel_x_off = 0, accel_y_off = 0, accel_z_off = 0;
+    int64_t gyro_x_off = 0, gyro_y_off = 0, gyro_z_off = 0;
     for (int i = 0; i < CALIBRATION_SAMPLES; i++){
+        int16_t x, y, z;
         mpu_read_accel_raw(&x, &y, &z); // sum up accel vals
         accel_x_off += x;
         accel_y_off += y;
@@ -137,30 +136,53 @@ int mpu_calibrate()
         gyro_y_off += y;
         gyro_z_off += z;
     }
-    // get average for each and store in offsets
-    x_accel_offset = accel_x_off / CALIBRATION_SAMPLES;
-    y_accel_offset = accel_y_off / CALIBRATION_SAMPLES;
-    z_accel_offset = ACCEL_Z_GRAV_G - accel_z_off / CALIBRATION_SAMPLES;
-    x_gyro_offset = gyro_x_off / CALIBRATION_SAMPLES;
-    y_gyro_offset = gyro_y_off / CALIBRATION_SAMPLES;
-    z_gyro_offset = gyro_y_off / CALIBRATION_SAMPLES;
+    x_accel_offset = (int16_t)(accel_x_off/CALIBRATION_SAMPLES);
+    y_accel_offset =  (int16_t)(accel_y_off/CALIBRATION_SAMPLES);
+    z_accel_offset = ACCEL_Z_GRAV_G - (int16_t)(accel_z_off/CALIBRATION_SAMPLES);
+    x_gyro_offset = (int16_t)(gyro_x_off/CALIBRATION_SAMPLES);
+    y_gyro_offset = (int16_t)(gyro_y_off/CALIBRATION_SAMPLES);
+    z_gyro_offset = (int16_t)(gyro_z_off/CALIBRATION_SAMPLES);
+    printf("calibration done\n");
+    
     return 1;
 }
 
-void mpu_read_gyro(float *x_axis, float *y_axis, float *z_axis)
+double mpu_read_x_accel()
 {
-    float x, y, z;
-    mpu_read_gyro_raw(&x, &y, &z);
-    *x_axis -= x - x_gyro_offset;
-    *y_axis -= y - y_gyro_offset;
-    *z_axis -= z - z_gyro_offset;
+    uint8_t x[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_XOUT_H, &x, 2);
+    return (double)(((x[0] << 8 | x[1]) / accel_sensivity) + x_accel_offset);
 }
 
-void mpu_read_accel(float *x_axis, float *y_axis, float *z_axis)
+double mpu_read_y_accel()
 {
-    float x, y, z;
-    mpu_read_accel_raw(&x, &y, &z);
-    *x_axis = x - x_accel_offset;
-    *y_axis = y - y_accel_offset;
-    *z_axis = z + z_accel_offset;
+    int16_t y[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_YOUT_H, &y, 2);
+    return (double)(((y[0] << 8 | y[1]) + y_accel_offset) / accel_sensivity);
 }
+double mpu_read_z_accel()
+{
+    int16_t z[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_ZOUT_H, &z, 2);
+    return (double)(((z[0] << 8 | z[1]) + z_accel_offset) / accel_sensivity);
+}
+
+double get_x_angle_accel()
+{
+    double x = mpu_read_y_accel();
+    double z = mpu_read_z_accel();
+    double angle = atan2(x, z) * RAD_TO_DEG;
+    printf("fy: %f   fz:%f   angle:%f\n",x,z,angle);
+    return angle;
+}
+
+//double xa = 0, ya = 0, za = 0; // accel vals
+//double xg = 0, yg = 0, zg = 0; // gyro vals
+//double prev_angle = 0;
+//void calculate_angle_task(void *pvParameter)
+//{
+//    TickType_t start_task_time = xTaskGetTickCount();
+//    mpu_read_accel(&xa, &ya, &za);
+//    mpu_read_gyro(&xg, &yg, &zg);
+//    vTaskDelayUntil(start_task_time, FILTER_EXECUTION_FREQUENCY / portTICK_PERIOD_MS); // repeat at fixed interval
+//}

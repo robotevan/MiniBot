@@ -5,7 +5,14 @@
 #include <esp_log.h>
 #include <math.h>
 #include "i2c.h"
-#include <assert.h>
+#include "stdint.h"
+#include "freertos/task.h"
+
+#define FILTER_TYPE COMPLEMENTARY
+#define ACCEL_COMP_PERCENT 35 // Percentage of accel signal used in complementary fileter
+#define GYRO_COMP_PERCEMT 65 // Percentage of gyro signal used in complementary fileter
+#define FILTER_EXECUTION_FREQUENCY 10 // time between each execution of task in ms
+#define RAD_TO_DEG 57.2958
 
 #define MPU_SLAVE_ADDR          0x68
 #define MPU_ACCEL_XOUT_H        0x3B
@@ -28,6 +35,12 @@
 #define MPU_SMPLRT_DIV          0x19
 #define MPU_CONFIG              0x1A
 #define MPU_WHOAMI              0x75
+#define MPU_XG_OFFS_HIGH        0x06
+#define MPU_XG_OFFS_LOW         0x07
+#define MPU_YG_OFFS_HIGH        0x08
+#define MPU_YG_OFFS_LOW         0x09
+#define MPU_ZG_OFFS_HIGH        0x0A
+#define MPU_ZG_OFFS_LOW         0x0B
 
 #define MPU_SLEEP_BIT 6
 #define MPU_RESET_BIT 7
@@ -85,7 +98,7 @@ typedef enum{
 
 
 
-#define CALIBRATION_SAMPLES 1000
+#define CALIBRATION_SAMPLES 10000
 #define ACCEL_Z_GRAV_G 1 // 1g on z axis for calibration
 
 void mpu_init(uint8_t sda_pin, uint8_t scl_pin);
@@ -96,11 +109,18 @@ int mpu_set_gyro_range(gyro_range_t gyro_range);
 int mpu_set_accel_range(accel_range_t accel_range);
 int mpu_set_sleep(int enabled);
 int mpu_set_lp_filter(lp_filter_t lp_filter);
-void mpu_read_gyro_raw(float *x_axis, float *y_axis, float *z_axis); // RAW
-void mpu_read_accel_raw(float *x_axis, float *y_axis, float *z_axis); // RAW
+void mpu_read_gyro_raw(int16_t *x_axis, int16_t *y_axis, int16_t *z_axis); // RAW
+void mpu_read_accel_raw(int16_t *x_axis, int16_t *y_axis, int16_t *z_axis); // RAW
 int mpu_calibrate();
-void mpu_read_gyro(float *x_axis, float *y_axis, float *z_axis); // CORRECTED
-void mpu_read_accel(float *x_axis, float *y_axis, float *z_axis); // CORRECTED
+// calibrated read
+double mpu_read_x_accel();
+double mpu_read_y_accel();
+double mpu_read_z_accel();
 
+double get_x_angle_accel();
+void get_angle_gyro(double *angle_gyro); // must use prev angle as angle_gyro
+
+// rtos tasks
+void calculate_angle_task(void *pvParameter);
 
 #endif

@@ -7,8 +7,8 @@
 #include "soc/mcpwm_struct.h"
 
 
-void init_mcpwm(int pin_in1, int pin_in2, int pin_in3, int pin_in4);
-void set_speed(int speed);
+void motordriver_init(int pin_in1, int pin_in2, int pin_in3, int pin_in4);
+void motordriver_set_speed(int speed);
 
 
 
