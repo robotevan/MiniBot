@@ -22,7 +22,7 @@ void app_main()
     mpu_calibrate();
     while(1)
     {
-        get_x_angle_accel();
+        print_accel_data();
         
     }
 

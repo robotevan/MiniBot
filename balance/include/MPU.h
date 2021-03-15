@@ -99,7 +99,7 @@ typedef enum{
 
 
 #define CALIBRATION_SAMPLES 10000
-#define ACCEL_Z_GRAV_G 1 // 1g on z axis for calibration
+#define ACCEL_Z_GRAV_G 1.0 // 1g on z axis for calibration
 
 void mpu_init(uint8_t sda_pin, uint8_t scl_pin);
 int mpu_reset();
@@ -112,13 +112,21 @@ int mpu_set_lp_filter(lp_filter_t lp_filter);
 void mpu_read_gyro_raw(int16_t *x_axis, int16_t *y_axis, int16_t *z_axis); // RAW
 void mpu_read_accel_raw(int16_t *x_axis, int16_t *y_axis, int16_t *z_axis); // RAW
 int mpu_calibrate();
-// calibrated read
+
+// individual accel axis
 double mpu_read_x_accel();
 double mpu_read_y_accel();
 double mpu_read_z_accel();
+void print_accel_data(); //test purposes
+// individual gyro axis
+double mpu_read_x_gyro();
+double mpu_read_y_gyro();
+double mpu_read_z_gyro();
+void print_gyro_data();
 
+// x axis angle
 double get_x_angle_accel();
-void get_angle_gyro(double *angle_gyro); // must use prev angle as angle_gyro
+double get_x_angle_gyro(double prev_angle, double dt);
 
 // rtos tasks
 void calculate_angle_task(void *pvParameter);

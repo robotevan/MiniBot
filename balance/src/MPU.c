@@ -136,12 +136,12 @@ int mpu_calibrate()
         gyro_y_off += y;
         gyro_z_off += z;
     }
-    x_accel_offset = (int16_t)(accel_x_off/CALIBRATION_SAMPLES);
-    y_accel_offset =  (int16_t)(accel_y_off/CALIBRATION_SAMPLES);
-    z_accel_offset = ACCEL_Z_GRAV_G - (int16_t)(accel_z_off/CALIBRATION_SAMPLES);
-    x_gyro_offset = (int16_t)(gyro_x_off/CALIBRATION_SAMPLES);
-    y_gyro_offset = (int16_t)(gyro_y_off/CALIBRATION_SAMPLES);
-    z_gyro_offset = (int16_t)(gyro_z_off/CALIBRATION_SAMPLES);
+    x_accel_offset = (double)accel_x_off/CALIBRATION_SAMPLES;
+    y_accel_offset =  (double)accel_y_off/CALIBRATION_SAMPLES;
+    z_accel_offset =  (ACCEL_Z_GRAV_G * accel_sensivity) - (double)accel_z_off/CALIBRATION_SAMPLES;
+    x_gyro_offset = (double)(gyro_x_off/CALIBRATION_SAMPLES);
+    y_gyro_offset = (double)(gyro_y_off/CALIBRATION_SAMPLES);
+    z_gyro_offset = (double)(gyro_z_off/CALIBRATION_SAMPLES);
     printf("calibration done\n");
     
     return 1;
@@ -150,33 +150,87 @@ int mpu_calibrate()
 double mpu_read_x_accel()
 {
     uint8_t x[2];
-    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_XOUT_H, &x, 2);
-    return (double)(((x[0] << 8 | x[1]) / accel_sensivity) + x_accel_offset);
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_XOUT_H, x, 2);
+    int16_t x_corrected = (int16_t)(x[0] << 8 | x[1]) + x_accel_offset;
+    return (double)x_corrected / accel_sensivity;
 }
 
 double mpu_read_y_accel()
 {
-    int16_t y[2];
-    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_YOUT_H, &y, 2);
-    return (double)(((y[0] << 8 | y[1]) + y_accel_offset) / accel_sensivity);
+    uint8_t y[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_YOUT_H, y, 2);
+    int16_t y_corrected = (int16_t)(y[0] << 8 | y[1]) + y_accel_offset;
+    return (double)y_corrected / accel_sensivity;
 }
+
 double mpu_read_z_accel()
 {
-    int16_t z[2];
-    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_ZOUT_H, &z, 2);
-    return (double)(((z[0] << 8 | z[1]) + z_accel_offset) / accel_sensivity);
+    uint8_t z[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_ACCEL_ZOUT_H, z, 2);
+    int16_t z_corrected = (int16_t)(z[0] << 8 | z[1]) + z_accel_offset;
+    return (double)z_corrected / accel_sensivity;
 }
+
+void print_accel_data()
+{
+    double x = mpu_read_x_accel();
+    double y = mpu_read_y_accel();
+    double z = mpu_read_z_accel();
+    printf("accel  x: %f  y: %f  z: %f\n", x, y, z);
+}
+
+double mpu_read_x_gyro()
+{
+    uint8_t x[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_XOUT_H, x, 2);
+    int16_t x_corrected = (int16_t)(x[0] << 8 | x[1]) - x_gyro_offset;
+    return (double)x_corrected / gyro_sensivity;
+}
+
+
+double mpu_read_y_gyro()
+{
+    uint8_t y[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_YOUT_H, y, 2);
+    int16_t y_corrected = (int16_t)(y[0] << 8 | y[1]) - y_gyro_offset;
+    return (double)y_corrected / gyro_sensivity;
+}
+
+double mpu_read_z_gyro()
+{
+    uint8_t z[2];
+    i2c_read_slave(MPU_SLAVE_ADDR, MPU_GYRO_ZOUT_H, z, 2);
+    int16_t z_corrected = (int16_t)(z[0] << 8 | z[1]) - z_gyro_offset;
+    return (double)z_corrected / gyro_sensivity;
+}
+
+void print_gyro_data()
+{
+    double x = mpu_read_x_gyro();
+    double y = mpu_read_y_gyro();
+    double z = mpu_read_z_gyro();
+    printf("gryo:  x: %f  y: %f  z: %f\n", x, y, z);
+}
+
+
 
 double get_x_angle_accel()
 {
-    double x = mpu_read_y_accel();
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    double x = mpu_read_x_accel();
     double z = mpu_read_z_accel();
     double angle = atan2(x, z) * RAD_TO_DEG;
-    printf("fy: %f   fz:%f   angle:%f\n",x,z,angle);
     return angle;
 }
 
-//double xa = 0, ya = 0, za = 0; // accel vals
+double get_x_angle_gyro(double prev_angle, double dt)
+{
+    double new_angle = 5.2;
+    return new_angle;
+}
+
+//double kDelayUntil(start_task_time, FILTER_EXECUTION_FREQUENCY / portTICK_PERIOD_MS); // repeat at fixed interval
+//}xa = 0, ya = 0, za = 0; // accel vals
 //double xg = 0, yg = 0, zg = 0; // gyro vals
 //double prev_angle = 0;
 //void calculate_angle_task(void *pvParameter)
@@ -184,5 +238,4 @@ double get_x_angle_accel()
 //    TickType_t start_task_time = xTaskGetTickCount();
 //    mpu_read_accel(&xa, &ya, &za);
 //    mpu_read_gyro(&xg, &yg, &zg);
-//    vTaskDelayUntil(start_task_time, FILTER_EXECUTION_FREQUENCY / portTICK_PERIOD_MS); // repeat at fixed interval
-//}
+//    vTas
